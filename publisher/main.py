@@ -42,7 +42,7 @@ class MainHandler(webapp.RequestHandler):
 
   def get(self):
     context = dict(messages=Message.gql('ORDER BY when DESC').fetch(20))
-    self.response.out.write(template.render('input.html', context))
+    self.response.out.write(str(template.render('input.html', context)))
 
   def post(self):
     hub_url = self.request.get('hub')
@@ -78,7 +78,7 @@ class FeedHandler(webapp.RequestHandler):
     if messages:
       context['first_message'] = messages[0]
     self.response.headers['content-type'] = 'application/xml'
-    self.response.out.write(template.render('atom.xml', context))
+    self.response.out.write(str(template.render('atom.xml', context)))
 
 
 def main():

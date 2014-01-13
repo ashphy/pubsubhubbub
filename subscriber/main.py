@@ -45,7 +45,7 @@ class InputHandler(webapp.RequestHandler):
 
   def get(self):
     # Just subscribe to everything.
-    self.response.out.write(self.request.get('hub.challenge'))
+    self.response.out.write(str(self.request.get('hub.challenge')))
     self.response.set_status(200)
 
   def post(self):
@@ -90,7 +90,7 @@ class InputHandler(webapp.RequestHandler):
           link=link))
     db.put(update_list)
     self.response.set_status(200)
-    self.response.out.write("Aight.  Saved.");
+    self.response.out.write("Aight.  Saved.")
 
 
 class DebugHandler(webapp.RequestHandler):
@@ -114,7 +114,7 @@ class ViewHandler(webapp.RequestHandler):
 
   def get(self):
     context = dict(entries=SomeUpdate.gql('ORDER BY updated DESC').fetch(50))
-    self.response.out.write(template.render('subscriber.html', context))
+    self.response.out.write(str(template.render('subscriber.html', context)))
 
 
 class ItemsHandler(webapp.RequestHandler):
@@ -128,7 +128,7 @@ class ItemsHandler(webapp.RequestHandler):
                     'title': update.title,
                     'content': update.content,
                     'source': update.link})
-    self.response.out.write(encoder.encode(stuff))
+    self.response.out.write(str(encoder.encode(stuff)))
 
 
 application = webapp.WSGIApplication(

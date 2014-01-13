@@ -16,6 +16,9 @@ skip_files:
 - ^(.*/)?(main_test|remote_shell|testutil|urlfetch_test_stub|feed_diff_test)\.py
 - ^(.*/)?feed_diff_testdata
 
+includes:
+- mapreduce/include.yaml
+
 handlers:
 - url: /base\.css
   static_files: base.css

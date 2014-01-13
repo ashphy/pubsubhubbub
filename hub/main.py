@@ -120,6 +120,8 @@ import urlfetch_async
 import mapreduce.control
 import mapreduce.model
 
+import webapp2
+
 async_proxy = async_apiproxy.AsyncAPIProxy()
 
 ################################################################################
@@ -2064,11 +2066,11 @@ def confirm_subscription(mode, topic, callback, verify_token,
     return False
 
 
-class SubscribeHandler(webapp.RequestHandler):
+class SubscribeHandler(webapp2.RequestHandler):
   """End-user accessible handler for Subscribe and Unsubscribe events."""
 
   def get(self):
-    self.response.out.write(template.render('subscribe_debug.html', {}))
+    self.response.out.write(str(template.render('subscribe_debug.html', {})))
 
   @dos.limit(param='hub.callback', count=10, period=1)
   def post(self):
@@ -2162,7 +2164,7 @@ class SubscribeHandler(webapp.RequestHandler):
       return self.response.set_status(503)
 
 
-class SubscriptionConfirmHandler(webapp.RequestHandler):
+class SubscriptionConfirmHandler(webapp2.RequestHandler):
   """Background worker for asynchronously confirming subscriptions."""
 
   @work_queue_only
@@ -2204,12 +2206,12 @@ class SubscriptionConfirmHandler(webapp.RequestHandler):
         Subscription.archive(sub.callback, sub.topic)
 
 
-class SubscriptionReconfirmHandler(webapp.RequestHandler):
+class SubscriptionReconfirmHandler(webapp2.RequestHandler):
   """Periodic handler causes reconfirmation for almost expired subscriptions."""
 
-  def __init__(self, now=time.time, start_map=mapreduce.control.start_map):
+  def __init__(self, request, response, now=time.time, start_map=mapreduce.control.start_map):
     """Initializer."""
-    webapp.RequestHandler.__init__(self)
+    webapp2.RequestHandler.__init__(self, request, response)
     self.now = now
     self.start_map = start_map
 
@@ -2245,7 +2247,7 @@ class SubscriptionReconfirmHandler(webapp.RequestHandler):
 
 
 # TODO(bslatkin): Move this to an offline job.
-class SubscriptionCleanupHandler(webapp.RequestHandler):
+class SubscriptionCleanupHandler(webapp2.RequestHandler):
   """Background worker for cleaning up deleted Subscription instances."""
 
   @work_queue_only
@@ -2261,7 +2263,7 @@ class SubscriptionCleanupHandler(webapp.RequestHandler):
         logging.exception('Could not clean-up Subscription instances')
 
 
-class CleanupMapperHandler(webapp.RequestHandler):
+class CleanupMapperHandler(webapp2.RequestHandler):
   """Cleans up all data from a Mapper job run."""
 
   @work_queue_only
@@ -2298,7 +2300,7 @@ def derive_sources(request_handler, urls):
   return {}
 
 
-class PublishHandlerBase(webapp.RequestHandler):
+class PublishHandlerBase(webapp2.RequestHandler):
   """Base-class for publish ping receiving handlers."""
 
   def receive_publish(self, urls, success_code, param_name):
@@ -2359,7 +2361,7 @@ class PublishHandler(PublishHandlerBase):
   """End-user accessible handler for the Publish event."""
 
   def get(self):
-    self.response.out.write(template.render('publish_debug.html', {}))
+    self.response.out.write(str(template.render('publish_debug.html', {})))
 
   @dos.limit(count=100, period=1)
   def post(self):
@@ -2674,7 +2676,7 @@ def parse_feed(feed_record,
   return parse_successful
 
 
-class PullFeedHandler(webapp.RequestHandler):
+class PullFeedHandler(webapp2.RequestHandler):
   """Background worker for pulling feeds."""
 
   def _handle_fetches(self, feed_list):
@@ -2836,7 +2838,7 @@ def push_event(sub, headers, payload, async_proxy, callback):
                        deadline=MAX_FETCH_SECONDS)
 
 
-class PushEventHandler(webapp.RequestHandler):
+class PushEventHandler(webapp2.RequestHandler):
   """Background worker for pushing events to subscribers."""
 
   @work_queue_only
@@ -2941,7 +2943,7 @@ def take_polling_action(topic_list, poll_type):
                       'of type %r for topics: %s', poll_type, topic_list)
 
 
-class PollBootstrapHandler(webapp.RequestHandler):
+class PollBootstrapHandler(webapp2.RequestHandler):
   """Boostrap handler automatically polls feeds."""
 
   @work_queue_only
@@ -3012,16 +3014,16 @@ class PollBootstrapHandler(webapp.RequestHandler):
 ################################################################################
 # Feed canonicalization
 
-class RecordFeedHandler(webapp.RequestHandler):
+class RecordFeedHandler(webapp2.RequestHandler):
   """Background worker for categorizing/classifying feed URLs by their ID."""
 
-  def __init__(self, now=datetime.datetime.now):
+  def __init__(self, request, response, now=datetime.datetime.now):
     """Initializer.
 
     Args:
       now: Callable that returns the current time as a datetime.datetime.
     """
-    webapp.RequestHandler.__init__(self)
+    webapp2.RequestHandler.__init__(self, request, response)
     self.now = now
 
   @work_queue_only
@@ -3097,14 +3099,14 @@ class RecordFeedHandler(webapp.RequestHandler):
 
 ################################################################################
 
-class HubHandler(webapp.RequestHandler):
+class HubHandler(webapp2.RequestHandler):
   """Handler to multiplex subscribe and publish events on the same URL."""
 
   def get(self):
     context = {
       'host': self.request.host,
     }
-    self.response.out.write(template.render('welcome.html', context))
+    self.response.out.write(str(template.render('welcome.html', context)))
 
   def post(self):
     mode = self.request.get('hub.mode', '').lower()
@@ -3114,14 +3116,13 @@ class HubHandler(webapp.RequestHandler):
       handler = SubscribeHandler()
     else:
       self.response.set_status(400)
-      self.response.out.write('hub.mode is invalid')
+      self.response.out.write(str('hub.mode is invalid'))
       return
-
     handler.initialize(self.request, self.response)
     handler.post()
 
 
-class TopicDetailHandler(webapp.RequestHandler):
+class TopicDetailHandler(webapp2.RequestHandler):
   """Handler that serves topic debugging information to end-users."""
 
   @dos.limit(count=5, period=60)
@@ -3174,10 +3175,10 @@ class TopicDetailHandler(webapp.RequestHandler):
           'fetch_attempts': fetch.fetching_failures,
           'totally_failed': fetch.totally_failed,
         })
-    self.response.out.write(template.render('topic_details.html', context))
+    self.response.out.write(str(template.render('topic_details.html', context)))
 
 
-class SubscriptionDetailHandler(webapp.RequestHandler):
+class SubscriptionDetailHandler(webapp2.RequestHandler):
   """Handler that serves details about subscriber deliveries to end-users."""
 
   @dos.limit(count=5, period=60)
@@ -3257,10 +3258,10 @@ class SubscriptionDetailHandler(webapp.RequestHandler):
               single_key=callback_url),
         })
 
-    self.response.out.write(template.render('event_details.html', context))
+    self.response.out.write(str(template.render('event_details.html', context)))
 
 
-class StatsHandler(webapp.RequestHandler):
+class StatsHandler(webapp2.RequestHandler):
   """Handler that serves DoS statistics information."""
 
   def post(self):
@@ -3319,7 +3320,7 @@ class StatsHandler(webapp.RequestHandler):
       'all_configs': all_configs,
       'show_everything': True,
     })
-    self.response.out.write(template.render('all_stats.html', context))
+    self.response.out.write(str(template.render('all_stats.html', context)))
 
 ################################################################################
 # Hook system
@@ -3426,6 +3427,7 @@ class HookManager(object):
     self._mapping[original] = []
 
   def execute(self, original, *args, **kwargs):
+    print('test');
     """Executes a hookable method, possibly invoking a registered Hook.
 
     Args:
@@ -3539,7 +3541,7 @@ def main():
       (r'/work/reconfirm_subscriptions', SubscriptionReconfirmHandler),
       (r'/work/cleanup_mapper', CleanupMapperHandler),
     ])
-  application = webapp.WSGIApplication(HANDLERS, debug=DEBUG)
+  application = webapp2.WSGIApplication(HANDLERS, debug=DEBUG)
   wsgiref.handlers.CGIHandler().run(application)
 
 ################################################################################
